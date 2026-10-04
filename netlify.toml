@@ -1,0 +1,28 @@
+# Netlify 部署配置（与 vercel.json 等价）
+# 文档：https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA 路由重写：所有前端路由都返回 index.html，防止刷新 404
+# Netlify 对已存在的静态文件（如 /assets/*.js）会优先返回文件，不受此规则影响
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# index.html 不缓存，保证用户总能拿到最新入口
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Vite 构建产物自带 hash 文件名，可长期强缓存
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

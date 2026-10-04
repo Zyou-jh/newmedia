@@ -15,6 +15,10 @@
   ::selection {
     background: rgba(59, 130, 246, 0.3);
   }
+  /* 杂志排版区块内使用浅色选中 */
+  .magazine-paper ::selection {
+    background: rgba(255, 107, 53, 0.25);
+  }
 }
 
 @layer utilities {

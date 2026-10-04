@@ -13,7 +13,7 @@ import {
   logoutAuth,
   type AppUser,
 } from '../supabase/auth';
-import { subscribeMember } from '../supabase/database';
+import { subscribeMember, fetchMember } from '../supabase/database';
 import type { Member } from '../types/member';
 
 interface AuthContextValue {
@@ -65,11 +65,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       member,
       loading,
-      login: loginWithEmail,
-      register: registerWithEmail,
-      logout: logoutAuth,
-      // 实时监听已自动同步，此函数保留用于兼容调用方
-      refreshMember: async () => undefined,
+      // 包装后手动更新 state：Demo 模式下 subscribeAuth 没有持续监听
+      login: async (email: string, password: string) => {
+        const u = await loginWithEmail(email, password);
+        setUser(u);
+        return u;
+      },
+      register: async (name: string, email: string, password: string, batch: number) => {
+        const u = await registerWithEmail(name, email, password, batch);
+        setUser(u);
+        return u;
+      },
+      logout: async () => {
+        await logoutAuth();
+        setUser(null);
+        setMember(null);
+      },
+      refreshMember: async () => {
+        if (!user) return;
+        try {
+          const m = await fetchMember(user.uid);
+          if (m) setMember(m);
+        } catch {
+          // 忽略刷新失败
+        }
+      },
     }),
     [user, member, loading]
   );

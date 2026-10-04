@@ -5,16 +5,16 @@ import {
   ArrowLeft,
   Link2,
   FileQuestion,
-  Sparkles,
 } from 'lucide-react';
 import { useMember } from '../hooks/useMember';
 import { useWorks } from '../hooks/useWorks';
 import WorkCard from '../components/WorkCard';
-import Lightbox from '../components/Lightbox';
 import EmptyState from '../components/EmptyState';
 import StarBackground from '../components/StarBackground';
 import { MemberProfileSkeleton, WorkCardSkeleton } from '../components/Skeleton';
 import { WORK_TYPE_LABEL, type Work, type WorkType } from '../types/member';
+import MagazineAbout from '../components/magazine/MagazineAbout';
+import MagazineWorkDetail from '../components/magazine/MagazineWorkDetail';
 
 const TYPE_FILTERS: Array<{ key: WorkType | 'all'; label: string }> = [
   { key: 'all', label: '全部' },
@@ -138,50 +138,8 @@ export default function MemberProfile() {
         </div>
       </div>
 
-      {/* 关于我 + 技能 */}
-      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-5">
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-md lg:col-span-3"
-          >
-            <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
-              <Sparkles className="h-5 w-5 text-neon-blue" />
-              关于我
-            </h2>
-            <p className="whitespace-pre-line font-light leading-relaxed text-gray-300">
-              {member.description || '这位成员还没有填写自我介绍。'}
-            </p>
-          </motion.section>
-
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-md lg:col-span-2"
-          >
-            <h2 className="mb-4 text-xl font-bold">技能标签</h2>
-            {member.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {member.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full border border-white/10 bg-gradient-to-r from-blue-500/10 to-purple-500/10 px-3.5 py-1.5 text-sm font-medium text-gray-200"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">暂未添加技能标签</p>
-            )}
-          </motion.section>
-        </div>
-      </div>
+      {/* 杂志风格：关于我 + 技能 */}
+      <MagazineAbout member={member} />
 
       {/* 作品展示 */}
       <div className="mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
@@ -240,7 +198,8 @@ export default function MemberProfile() {
         )}
       </div>
 
-      <Lightbox work={activeWork} onClose={() => setActiveWork(null)} />
+      {/* 杂志风格作品详情 */}
+      <MagazineWorkDetail work={activeWork} onClose={() => setActiveWork(null)} />
     </div>
   );
 }

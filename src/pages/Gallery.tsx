@@ -4,7 +4,7 @@ import { Images, Loader2 } from 'lucide-react';
 import { useAllWorks } from '../hooks/useAllWorks';
 import { useMembers } from '../hooks/useMembers';
 import WorkCard from '../components/WorkCard';
-import Lightbox from '../components/Lightbox';
+import MagazineWorkDetail from '../components/magazine/MagazineWorkDetail';
 import EmptyState from '../components/EmptyState';
 import StarBackground from '../components/StarBackground';
 import { WorkCardSkeleton } from '../components/Skeleton';
@@ -208,7 +208,7 @@ export default function Gallery() {
                 <WorkCard key={w.id} work={w} index={i} onClick={setActiveWork} />
               ))}
             </div>
-            <Lightbox work={activeWork} onClose={() => setActiveWork(null)} />
+            <MagazineWorkDetail work={activeWork} onClose={() => setActiveWork(null)} />
           </>
         )}
 
