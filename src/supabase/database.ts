@@ -199,10 +199,37 @@ export async function deleteMemberWork(memberId: string, workId: string): Promis
   if (error) throw errMsg(error, '作品删除失败');
 }
 
-/* ---------------- 实时订阅（Supabase Realtime） ---------------- */
+/* ---------------- 数据订阅（初始加载 + 30 秒轮询） ---------------- */
 
 type Unsub = () => void;
 
+const POLL_INTERVAL = 30_000;
+
+/**
+ * 通用轮询订阅器：先立即执行一次 fetch，再每隔 interval 毫秒重新拉取。
+ * 用轮询替代 Supabase Realtime 订阅，避免 React StrictMode 下
+ * 同名 channel 重复订阅导致的 "cannot add postgres_changes callbacks" 报错。
+ */
+function poll<T>(
+  fetcher: () => Promise<T>,
+  onChange: (v: T) => void,
+  onError: (e: Error) => void,
+  interval = POLL_INTERVAL
+): Unsub {
+  let cancelled = false;
+  const run = () => {
+    if (cancelled) return;
+    fetcher().then(onChange).catch(onError);
+  };
+  run();
+  const timer = setInterval(run, interval);
+  return () => {
+    cancelled = true;
+    clearInterval(timer);
+  };
+}
+
+/** Demo 模式下只取一次数据，不轮询（本地数据无需轮询） */
 function demoOneShot<T>(fetcher: () => Promise<T>, onChange: (v: T) => void): Unsub {
   fetcher().then(onChange).catch(() => onChange([] as unknown as T));
   return () => undefined;
@@ -212,24 +239,8 @@ export function subscribeMembers(
   onChange: (members: Member[]) => void,
   onError: (e: Error) => void
 ): Unsub {
-  if (!isSupabaseEnabled || !supabase) {
-    return demoOneShot(fetchMembers, onChange);
-  }
-  const client = supabase;
-  const channel = client
-    .channel('public:members')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'members' },
-      () => {
-        fetchMembers().then(onChange).catch(onError);
-      }
-    )
-    .subscribe();
-  fetchMembers().then(onChange).catch(onError);
-  return () => {
-    void client.removeChannel(channel);
-  };
+  if (!isSupabaseEnabled || !supabase) return demoOneShot(fetchMembers, onChange);
+  return poll(fetchMembers, onChange, onError);
 }
 
 export function subscribeMember(
@@ -237,24 +248,8 @@ export function subscribeMember(
   onChange: (member: Member | null) => void,
   onError: (e: Error) => void
 ): Unsub {
-  if (!isSupabaseEnabled || !supabase) {
-    return demoOneShot(() => fetchMember(uid), onChange);
-  }
-  const client = supabase;
-  const channel = client
-    .channel(`public:members:id=eq.${uid}`)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'members', filter: `id=eq.${uid}` },
-      () => {
-        fetchMember(uid).then(onChange).catch(onError);
-      }
-    )
-    .subscribe();
-  fetchMember(uid).then(onChange).catch(onError);
-  return () => {
-    void client.removeChannel(channel);
-  };
+  if (!isSupabaseEnabled || !supabase) return demoOneShot(() => fetchMember(uid), onChange);
+  return poll(() => fetchMember(uid), onChange, onError);
 }
 
 export function subscribeMemberWorks(
@@ -262,51 +257,14 @@ export function subscribeMemberWorks(
   onChange: (works: Work[]) => void,
   onError: (e: Error) => void
 ): Unsub {
-  if (!isSupabaseEnabled || !supabase) {
-    return demoOneShot(() => fetchMemberWorks(memberId), onChange);
-  }
-  const client = supabase;
-  const channel = client
-    .channel(`public:works:member_id=eq.${memberId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'works',
-        filter: `member_id=eq.${memberId}`,
-      },
-      () => {
-        fetchMemberWorks(memberId).then(onChange).catch(onError);
-      }
-    )
-    .subscribe();
-  fetchMemberWorks(memberId).then(onChange).catch(onError);
-  return () => {
-    void client.removeChannel(channel);
-  };
+  if (!isSupabaseEnabled || !supabase) return demoOneShot(() => fetchMemberWorks(memberId), onChange);
+  return poll(() => fetchMemberWorks(memberId), onChange, onError);
 }
 
 export function subscribeAllWorks(
   onChange: (works: Work[]) => void,
   onError: (e: Error) => void
 ): Unsub {
-  if (!isSupabaseEnabled || !supabase) {
-    return demoOneShot(fetchAllWorks, onChange);
-  }
-  const client = supabase;
-  const channel = client
-    .channel('public:works')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'works' },
-      () => {
-        fetchAllWorks().then(onChange).catch(onError);
-      }
-    )
-    .subscribe();
-  fetchAllWorks().then(onChange).catch(onError);
-  return () => {
-    void client.removeChannel(channel);
-  };
+  if (!isSupabaseEnabled || !supabase) return demoOneShot(fetchAllWorks, onChange);
+  return poll(fetchAllWorks, onChange, onError);
 }
